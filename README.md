@@ -50,15 +50,15 @@ It exposes read-only database tools over stdio for MCP clients such as OpenCode 
 | Scenario | `SQL_SERVER_HOST` | `SQL_SERVER_PORT` |
 |---|---|---|
 | Default instance | `localhost` | optional |
-| Named instance | `DAVID\\MSSQLSERVER01` | omit |
+| Named instance | `YOUR-SERVER\\YOUR-INSTANCE` | omit |
 | Explicit port | `db-host` | set it |
 
 ## Run locally
 
 ```powershell
 $env:SQL_SERVER_HOST="localhost"
-$env:SQL_SERVER_DATABASE="AdventureWorksLT"
-$env:SQL_SERVER_USER="test_mcp"
+$env:SQL_SERVER_DATABASE="YourDatabase"
+$env:SQL_SERVER_USER="your_sql_login"
 $env:SQL_SERVER_PASSWORD="your-password"
 $env:SQL_SERVER_ENCRYPT="true"
 $env:SQL_SERVER_TRUST_CERTIFICATE="true"
@@ -86,9 +86,9 @@ Add this to `~/.config/opencode/opencode.json`:
       "cwd": "C:\\path\\to\\repo",
       "timeout": 20000,
       "environment": {
-        "SQL_SERVER_HOST": "DAVID\\\\MSSQLSERVER01",
-        "SQL_SERVER_DATABASE": "AdventureWorksLT",
-        "SQL_SERVER_USER": "test_mcp",
+        "SQL_SERVER_HOST": "YOUR-SERVER\\\\YOUR-INSTANCE",
+        "SQL_SERVER_DATABASE": "YOUR_DATABASE",
+        "SQL_SERVER_USER": "YOUR_SQL_LOGIN",
         "SQL_SERVER_PASSWORD": "{env:SQL_SERVER_PASSWORD}",
         "SQL_SERVER_ENCRYPT": "true",
         "SQL_SERVER_TRUST_CERTIFICATE": "true",
@@ -119,9 +119,9 @@ command: dotnet
 args: run --project C:\path\to\mcp-sql-server-personal.csproj
 cwd: C:\path\to\repo
 
-SQL_SERVER_HOST=DAVID\MSSQLSERVER01
-SQL_SERVER_DATABASE=AdventureWorksLT
-SQL_SERVER_USER=test_mcp
+SQL_SERVER_HOST=YOUR-SERVER\YOUR-INSTANCE
+SQL_SERVER_DATABASE=YOUR_DATABASE
+SQL_SERVER_USER=YOUR_SQL_LOGIN
 SQL_SERVER_PASSWORD=<your password>
 SQL_SERVER_ENCRYPT=true
 SQL_SERVER_TRUST_CERTIFICATE=true
@@ -136,28 +136,28 @@ SQL_MCP_MAX_RESPONSE_BYTES=1048576
 
 Expected to work:
 
-- `list_tables` for a schema like `SalesLT`
+- `list_tables` for a schema like `dbo`
 
 ### 2. Table description
 
 Expected to work:
 
-- `describe_table` for a table like `SalesLT.Customer`
+- `describe_table` for a table like `dbo.Users`
 
 ### 3. Query execution
 
 Expected to work:
 
 ```sql
-SELECT TOP 3 CustomerID, FirstName, LastName
-FROM SalesLT.Customer
-ORDER BY CustomerID
+SELECT TOP 3 Id, FirstName, LastName
+FROM dbo.Users
+ORDER BY Id
 ```
 
 Expected to be rejected:
 
 ```sql
-DELETE FROM SalesLT.Customer
+DELETE FROM dbo.Users
 ```
 
 ## Security behavior
