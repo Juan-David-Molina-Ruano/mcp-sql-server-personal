@@ -13,7 +13,12 @@
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
+
+# Mono auto generated files
 .atl
+
+#docs
+docs/
 
 # Mono auto generated files
 mono_crash.*
