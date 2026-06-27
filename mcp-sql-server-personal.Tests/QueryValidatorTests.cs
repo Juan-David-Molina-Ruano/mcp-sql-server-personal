@@ -137,11 +137,36 @@ public class QueryValidatorTests
     }
 
     [Fact]
+    public void BracketedIdentifier_WithEscapedClosingBracket_Allowed()
+    {
+        var (isValid, error) = QueryValidator.ValidateReadOnlyQuery("SELECT [My]]Into] FROM dbo.[Audit]");
+        Assert.True(isValid);
+        Assert.Null(error);
+    }
+
+    [Fact]
     public void DoubleQuotedIdentifier_Into_Allowed()
     {
         var (isValid, error) = QueryValidator.ValidateReadOnlyQuery("SELECT \"Into\" FROM Users");
         Assert.True(isValid);
         Assert.Null(error);
+    }
+
+    [Fact]
+    public void DoubleQuotedIdentifier_WithEscapedQuote_Allowed()
+    {
+        var (isValid, error) = QueryValidator.ValidateReadOnlyQuery("SELECT \"My\"\"Into\" FROM Users");
+        Assert.True(isValid);
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public void SelectInto_WithDoubleQuotedTableName_StillRejected()
+    {
+        var (isValid, error) = QueryValidator.ValidateReadOnlyQuery("SELECT * INTO \"NewTable\" FROM Users");
+        Assert.False(isValid);
+        Assert.NotNull(error);
+        Assert.Contains("INTO", error, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

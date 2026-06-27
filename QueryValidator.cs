@@ -192,14 +192,75 @@ public static class QueryValidator
     /// Replaces the contents of bracketed identifiers [name] and double-quoted
     /// identifiers "name" with spaces of the same length so keyword scans are
     /// not affected by identifiers that happen to match a blocked keyword.
+    ///
+    /// Correctly handles SQL Server escape sequences:
+    ///   - ]] inside bracketed identifiers means a literal ]
+    ///   - "" inside double-quoted identifiers means a literal "
     /// </summary>
     private static string MaskBracketedAndQuotedIdentifiers(string query)
     {
-        // Replace bracketed identifiers [name] with spaces of same length.
-        string result = Regex.Replace(query, @"\[.*?\]", m => new string(' ', m.Length));
-        // Replace double-quoted identifiers "name" with spaces of same length.
-        result = Regex.Replace(result, "\".*?\"", m => new string(' ', m.Length));
-        return result;
+        var result = new System.Text.StringBuilder(query.Length);
+        int i = 0;
+
+        while (i < query.Length)
+        {
+            char c = query[i];
+
+            if (c == '[')
+            {
+                int start = i;
+                i++; // skip opening [
+
+                while (i < query.Length)
+                {
+                    if (query[i] == ']')
+                    {
+                        // Check for escaped ]]
+                        if (i + 1 < query.Length && query[i + 1] == ']')
+                        {
+                            i += 2;
+                            continue;
+                        }
+                        i++; // skip closing ]
+                        break;
+                    }
+                    i++;
+                }
+
+                result.Append(' ', i - start);
+                continue;
+            }
+
+            if (c == '"')
+            {
+                int start = i;
+                i++; // skip opening "
+
+                while (i < query.Length)
+                {
+                    if (query[i] == '"')
+                    {
+                        // Check for escaped ""
+                        if (i + 1 < query.Length && query[i + 1] == '"')
+                        {
+                            i += 2;
+                            continue;
+                        }
+                        i++; // skip closing "
+                        break;
+                    }
+                    i++;
+                }
+
+                result.Append(' ', i - start);
+                continue;
+            }
+
+            result.Append(c);
+            i++;
+        }
+
+        return result.ToString();
     }
 
     private static string? FindBlockedPrefix(string normalized)
