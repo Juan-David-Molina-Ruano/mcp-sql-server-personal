@@ -7,9 +7,10 @@ It exposes read-only database tools over stdio for MCP clients such as OpenCode 
 ## Quick path
 
 1. Build the project with .NET 8.
-2. Create a SQL Server login/user with read-only access.
-3. Configure your MCP client to launch this server over stdio.
-4. Verify `list_tables`, `describe_table`, and `execute_read_query`.
+2. Run the tests: `dotnet test`
+3. Create a SQL Server login/user with read-only access.
+4. Configure your MCP client to launch this server over stdio.
+5. Verify `list_tables`, `describe_table`, and `execute_read_query`.
 
 ## Features
 
@@ -23,9 +24,60 @@ It exposes read-only database tools over stdio for MCP clients such as OpenCode 
 
 ## Requirements
 
-- .NET 8 SDK
+- .NET 8 SDK (for building and running from source)
 - SQL Server reachable from the machine running the MCP client
 - A SQL login/user with read-only permissions
+
+## Build and test
+
+```powershell
+dotnet build
+dotnet test
+```
+
+## Publish for distribution
+
+To produce a single-file executable:
+
+```powershell
+dotnet publish -c Release --self-contained false -r win-x64
+```
+
+The output will be in `bin\Release\net8.0\win-x64\publish\`. You can copy the executable and run it directly without the .NET SDK installed (the .NET 8 runtime is still required unless you publish self-contained).
+
+For a fully self-contained build:
+
+```powershell
+dotnet publish -c Release --self-contained true -r win-x64
+```
+
+## Release automation
+
+Releases are automated with GitHub Actions and triggered by pushing a SemVer tag.
+
+1. Update the `<Version>` in `mcp-sql-server-personal.csproj` if needed.
+2. Commit and push the version bump.
+3. Create and push a tag:
+
+   ```powershell
+   git tag v1.1.0
+   git push origin v1.1.0
+   ```
+
+4. The `Release` workflow will:
+   - Build and test the project on Windows.
+   - Publish a self-contained `win-x64` executable.
+   - Create a ZIP archive and a SHA-256 checksum file.
+   - Generate a GitHub artifact attestation for the release assets.
+   - Create a GitHub release with the archive and checksum attached.
+
+You can verify the artifact attestation locally using the GitHub CLI:
+
+```powershell
+gh attestation verify mcp-sql-server-personal-win-x64.zip -R <owner>/<repo>
+```
+
+> Only SemVer-style tags matching `v[0-9]+.[0-9]+.[0-9]+*` trigger a release (for example: `v1.1.0`, `v1.1.1`, `v2.0.0`).
 
 ## Environment variables
 
@@ -208,10 +260,8 @@ This is a practical balance for local/personal use, not a substitute for databas
 
 ## Status
 
-This is a usable local read-only SQL Server MCP server.
+This is a usable local read-only SQL Server MCP server with automated tests and CI.
 
-Before calling it production-ready for broader use, do one more clean pass on:
-
-- reproducible build verification after stopping any running MCP process
-- final README/examples review
-- optional tests for query validation and sensitive-field sanitization
+- Query validation and sensitive-field sanitization are covered by unit tests.
+- A lightweight GitHub Actions workflow runs build and test on push/PR.
+- `dotnet publish` produces a single-file executable for distribution.

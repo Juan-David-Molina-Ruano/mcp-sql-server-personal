@@ -47,9 +47,10 @@ public sealed class SensitiveColumnPolicy
         "password", "passwd", "pwd",
         "hash", "salt",
         "token", "secret",
-        "ssn", "social_security",
+        "ssn", "social_security", "socialsecurity",
         "credit_card", "creditcard", "cvv", "cvc",
-        "iban", "routing_number",
+        "iban", "routing_number", "routingnumber",
+        "private_key", "privatekey",
     };
 
     /// <summary>
@@ -59,6 +60,7 @@ public sealed class SensitiveColumnPolicy
     public static IEnumerable<string> DefaultBroadPatterns => new[]
     {
         "api_key", "apikey",
+        "pin",
     };
 
     /// <summary>

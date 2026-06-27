@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="mcp-sql-server-personal.csproj" />
+  <Project Path="mcp-sql-server-personal.Tests\mcp-sql-server-personal.Tests.csproj" />
 </Solution>

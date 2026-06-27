@@ -10,7 +10,7 @@ public static class QueryValidator
     private static readonly HashSet<string> DangerousKeywords = new(StringComparer.OrdinalIgnoreCase)
     {
         "INSERT", "UPDATE", "DELETE", "MERGE", "DROP", "ALTER", "TRUNCATE",
-        "CREATE", "GRANT", "REVOKE", "DENY",
+        "CREATE", "GRANT", "REVOKE", "DENY", "INTO",
     };
 
     private static readonly HashSet<string> DangerousPrefixes = new(StringComparer.OrdinalIgnoreCase)
@@ -66,8 +66,8 @@ public static class QueryValidator
     }
 
     /// <summary>
-    /// Removes SQL comments and collapses whitespace so keyword checks are reliable.
-    /// Preserves string literal content so comments inside literals are not stripped.
+    /// Removes SQL comments, strips string literal contents, and collapses whitespace
+    /// so keyword checks are reliable without false positives from literal text.
     /// </summary>
     private static string NormalizeQuery(string query)
     {
@@ -81,13 +81,11 @@ public static class QueryValidator
 
             if (inString)
             {
-                result.Append(c);
                 if (c == '\'')
                 {
                     // Check for escaped single quote ('')
                     if (i + 1 < query.Length && query[i + 1] == '\'')
                     {
-                        result.Append('\'');
                         i += 2;
                         continue;
                     }
@@ -99,7 +97,6 @@ public static class QueryValidator
 
             if (c == '\'')
             {
-                result.Append(c);
                 inString = true;
                 i++;
                 continue;
@@ -166,16 +163,16 @@ public static class QueryValidator
     private static bool StartsWithAllowedKeyword(string normalized)
     {
         // After normalization, the query should start with SELECT or WITH.
-        return normalized.StartsWith("SELECT ", StringComparison.OrdinalIgnoreCase)
-            || normalized.StartsWith("SELECT\t", StringComparison.OrdinalIgnoreCase)
-            || normalized.Equals("SELECT", StringComparison.OrdinalIgnoreCase)
-            || normalized.StartsWith("WITH ", StringComparison.OrdinalIgnoreCase)
-            || normalized.StartsWith("WITH\t", StringComparison.OrdinalIgnoreCase)
-            || normalized.Equals("WITH", StringComparison.OrdinalIgnoreCase);
+        // Use word-boundary matching so SELECT* and SELECT(1) are accepted.
+        return Regex.IsMatch(normalized, @"^(SELECT|WITH)\b", RegexOptions.IgnoreCase);
     }
 
     private static string? FindBlockedKeyword(string normalized)
     {
+        // Mask bracketed identifiers and double-quoted identifiers so blocked
+        // keywords inside them do not trigger false positives.
+        string masked = MaskBracketedAndQuotedIdentifiers(normalized);
+
         // Use word-boundary matching to reduce false positives on identifiers like "UpdateLog".
         // However, because SQL allows identifiers without quotes, we also do a simpler
         // space-delimited token scan as a safety net.
@@ -183,7 +180,7 @@ public static class QueryValidator
         {
             // Regex word-boundary check
             string pattern = $@"\b{Regex.Escape(keyword)}\b";
-            if (Regex.IsMatch(normalized, pattern, RegexOptions.IgnoreCase))
+            if (Regex.IsMatch(masked, pattern, RegexOptions.IgnoreCase))
             {
                 return keyword;
             }
@@ -191,10 +188,87 @@ public static class QueryValidator
         return null;
     }
 
+    /// <summary>
+    /// Replaces the contents of bracketed identifiers [name] and double-quoted
+    /// identifiers "name" with spaces of the same length so keyword scans are
+    /// not affected by identifiers that happen to match a blocked keyword.
+    ///
+    /// Correctly handles SQL Server escape sequences:
+    ///   - ]] inside bracketed identifiers means a literal ]
+    ///   - "" inside double-quoted identifiers means a literal "
+    /// </summary>
+    private static string MaskBracketedAndQuotedIdentifiers(string query)
+    {
+        var result = new System.Text.StringBuilder(query.Length);
+        int i = 0;
+
+        while (i < query.Length)
+        {
+            char c = query[i];
+
+            if (c == '[')
+            {
+                int start = i;
+                i++; // skip opening [
+
+                while (i < query.Length)
+                {
+                    if (query[i] == ']')
+                    {
+                        // Check for escaped ]]
+                        if (i + 1 < query.Length && query[i + 1] == ']')
+                        {
+                            i += 2;
+                            continue;
+                        }
+                        i++; // skip closing ]
+                        break;
+                    }
+                    i++;
+                }
+
+                result.Append(' ', i - start);
+                continue;
+            }
+
+            if (c == '"')
+            {
+                int start = i;
+                i++; // skip opening "
+
+                while (i < query.Length)
+                {
+                    if (query[i] == '"')
+                    {
+                        // Check for escaped ""
+                        if (i + 1 < query.Length && query[i + 1] == '"')
+                        {
+                            i += 2;
+                            continue;
+                        }
+                        i++; // skip closing "
+                        break;
+                    }
+                    i++;
+                }
+
+                result.Append(' ', i - start);
+                continue;
+            }
+
+            result.Append(c);
+            i++;
+        }
+
+        return result.ToString();
+    }
+
     private static string? FindBlockedPrefix(string normalized)
     {
+        string masked = MaskBracketedAndQuotedIdentifiers(normalized);
+
         // Tokenize by splitting on whitespace and common delimiters.
-        var tokens = normalized.Split(new[] { ' ', '\t', '(', ')', ',', ';', '.', '[', ']' }, StringSplitOptions.RemoveEmptyEntries);
+        var tokens = masked.Split(new[] { ' ', '\t', '(', ')', ',', ';', '.', '[', ']' }, StringSplitOptions.RemoveEmptyEntries);
         foreach (string token in tokens)
         {
             foreach (string prefix in DangerousPrefixes)
