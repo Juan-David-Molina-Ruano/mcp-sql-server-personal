@@ -47,9 +47,11 @@ public sealed class SensitiveColumnPolicy
         "password", "passwd", "pwd",
         "hash", "salt",
         "token", "secret",
-        "ssn", "social_security",
+        "ssn", "social_security", "socialsecurity",
         "credit_card", "creditcard", "cvv", "cvc",
-        "iban", "routing_number",
+        "iban", "routing_number", "routingnumber",
+        "pin",
+        "private_key", "privatekey",
     };
 
     /// <summary>

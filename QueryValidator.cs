@@ -66,8 +66,8 @@ public static class QueryValidator
     }
 
     /// <summary>
-    /// Removes SQL comments and collapses whitespace so keyword checks are reliable.
-    /// Preserves string literal content so comments inside literals are not stripped.
+    /// Removes SQL comments, strips string literal contents, and collapses whitespace
+    /// so keyword checks are reliable without false positives from literal text.
     /// </summary>
     private static string NormalizeQuery(string query)
     {
@@ -81,13 +81,11 @@ public static class QueryValidator
 
             if (inString)
             {
-                result.Append(c);
                 if (c == '\'')
                 {
                     // Check for escaped single quote ('')
                     if (i + 1 < query.Length && query[i + 1] == '\'')
                     {
-                        result.Append('\'');
                         i += 2;
                         continue;
                     }
@@ -99,7 +97,6 @@ public static class QueryValidator
 
             if (c == '\'')
             {
-                result.Append(c);
                 inString = true;
                 i++;
                 continue;
@@ -166,12 +163,8 @@ public static class QueryValidator
     private static bool StartsWithAllowedKeyword(string normalized)
     {
         // After normalization, the query should start with SELECT or WITH.
-        return normalized.StartsWith("SELECT ", StringComparison.OrdinalIgnoreCase)
-            || normalized.StartsWith("SELECT\t", StringComparison.OrdinalIgnoreCase)
-            || normalized.Equals("SELECT", StringComparison.OrdinalIgnoreCase)
-            || normalized.StartsWith("WITH ", StringComparison.OrdinalIgnoreCase)
-            || normalized.StartsWith("WITH\t", StringComparison.OrdinalIgnoreCase)
-            || normalized.Equals("WITH", StringComparison.OrdinalIgnoreCase);
+        // Use word-boundary matching so SELECT* and SELECT(1) are accepted.
+        return Regex.IsMatch(normalized, @"^(SELECT|WITH)\b", RegexOptions.IgnoreCase);
     }
 
     private static string? FindBlockedKeyword(string normalized)
