@@ -118,4 +118,45 @@ public class QueryValidatorTests
         Assert.NotNull(error);
         Assert.Contains("INTO", error, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void SelectInto_WithBracketedTableName_StillRejected()
+    {
+        var (isValid, error) = QueryValidator.ValidateReadOnlyQuery("SELECT * INTO [NewTable] FROM Users");
+        Assert.False(isValid);
+        Assert.NotNull(error);
+        Assert.Contains("INTO", error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void BracketedIdentifier_Into_Allowed()
+    {
+        var (isValid, error) = QueryValidator.ValidateReadOnlyQuery("SELECT [Into] FROM dbo.[Audit]");
+        Assert.True(isValid);
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public void DoubleQuotedIdentifier_Into_Allowed()
+    {
+        var (isValid, error) = QueryValidator.ValidateReadOnlyQuery("SELECT \"Into\" FROM Users");
+        Assert.True(isValid);
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public void BracketedIdentifier_DangerousPrefix_Allowed()
+    {
+        var (isValid, error) = QueryValidator.ValidateReadOnlyQuery("SELECT [sp_who] FROM Users");
+        Assert.True(isValid);
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public void DoubleQuotedIdentifier_DangerousPrefix_Allowed()
+    {
+        var (isValid, error) = QueryValidator.ValidateReadOnlyQuery("SELECT \"xp_cmdshell\" FROM Users");
+        Assert.True(isValid);
+        Assert.Null(error);
+    }
 }

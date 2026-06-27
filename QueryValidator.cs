@@ -169,6 +169,10 @@ public static class QueryValidator
 
     private static string? FindBlockedKeyword(string normalized)
     {
+        // Mask bracketed identifiers and double-quoted identifiers so blocked
+        // keywords inside them do not trigger false positives.
+        string masked = MaskBracketedAndQuotedIdentifiers(normalized);
+
         // Use word-boundary matching to reduce false positives on identifiers like "UpdateLog".
         // However, because SQL allows identifiers without quotes, we also do a simpler
         // space-delimited token scan as a safety net.
@@ -176,7 +180,7 @@ public static class QueryValidator
         {
             // Regex word-boundary check
             string pattern = $@"\b{Regex.Escape(keyword)}\b";
-            if (Regex.IsMatch(normalized, pattern, RegexOptions.IgnoreCase))
+            if (Regex.IsMatch(masked, pattern, RegexOptions.IgnoreCase))
             {
                 return keyword;
             }
@@ -184,10 +188,26 @@ public static class QueryValidator
         return null;
     }
 
+    /// <summary>
+    /// Replaces the contents of bracketed identifiers [name] and double-quoted
+    /// identifiers "name" with spaces of the same length so keyword scans are
+    /// not affected by identifiers that happen to match a blocked keyword.
+    /// </summary>
+    private static string MaskBracketedAndQuotedIdentifiers(string query)
+    {
+        // Replace bracketed identifiers [name] with spaces of same length.
+        string result = Regex.Replace(query, @"\[.*?\]", m => new string(' ', m.Length));
+        // Replace double-quoted identifiers "name" with spaces of same length.
+        result = Regex.Replace(result, "\".*?\"", m => new string(' ', m.Length));
+        return result;
+    }
+
     private static string? FindBlockedPrefix(string normalized)
     {
+        string masked = MaskBracketedAndQuotedIdentifiers(normalized);
+
         // Tokenize by splitting on whitespace and common delimiters.
-        var tokens = normalized.Split(new[] { ' ', '\t', '(', ')', ',', ';', '.', '[', ']' }, StringSplitOptions.RemoveEmptyEntries);
+        var tokens = masked.Split(new[] { ' ', '\t', '(', ')', ',', ';', '.', '[', ']' }, StringSplitOptions.RemoveEmptyEntries);
         foreach (string token in tokens)
         {
             foreach (string prefix in DangerousPrefixes)
