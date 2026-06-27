@@ -28,6 +28,31 @@ It exposes read-only database tools over stdio for MCP clients such as OpenCode 
 - SQL Server reachable from the machine running the MCP client
 - A SQL login/user with read-only permissions
 
+## Install from release (no clone required)
+
+If you only want to use the MCP server, you do not need to clone the repository.
+
+1. Download the latest `mcp-sql-server-personal-win-x64.zip` asset from the GitHub Releases page.
+2. Optionally download the matching `.sha256` file.
+3. Extract the ZIP to a folder such as `C:\tools\mcp-sql-server-personal`.
+4. Configure your MCP client to launch `mcp-sql-server-personal.exe` from that folder.
+
+### Verify the downloaded ZIP
+
+```powershell
+$actualHash = (Get-FileHash -Path .\mcp-sql-server-personal-win-x64.zip -Algorithm SHA256).Hash
+$expectedHash = (Get-Content .\mcp-sql-server-personal-win-x64.zip.sha256).Split()[0]
+$actualHash -eq $expectedHash
+```
+
+The command should return `True`.
+
+### Verify the GitHub artifact attestation
+
+```powershell
+gh attestation verify mcp-sql-server-personal-win-x64.zip -R <owner>/<repo>
+```
+
 ## Build and test
 
 ```powershell
@@ -113,12 +138,46 @@ $env:SQL_SERVER_DATABASE="YourDatabase"
 $env:SQL_SERVER_USER="your_sql_login"
 $env:SQL_SERVER_PASSWORD="your-password"
 $env:SQL_SERVER_ENCRYPT="true"
-$env:SQL_SERVER_TRUST_CERTIFICATE="true"
+$env:SQL_SERVER_TRUST_CERTIFICATE="false"
 
 dotnet run --project ".\mcp-sql-server-personal.csproj"
 ```
 
 ## OpenCode configuration
+
+### Option A — run from the released executable (recommended for users)
+
+Add this to `~/.config/opencode/opencode.json`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "sql-server-personal": {
+      "type": "local",
+      "enabled": true,
+      "command": [
+        "C:\\tools\\mcp-sql-server-personal\\mcp-sql-server-personal.exe"
+      ],
+      "cwd": "C:\\tools\\mcp-sql-server-personal",
+      "timeout": 20000,
+      "environment": {
+        "SQL_SERVER_HOST": "YOUR-SERVER\\\\YOUR-INSTANCE",
+        "SQL_SERVER_DATABASE": "YOUR_DATABASE",
+        "SQL_SERVER_USER": "YOUR_SQL_LOGIN",
+        "SQL_SERVER_PASSWORD": "{env:SQL_SERVER_PASSWORD}",
+        "SQL_SERVER_ENCRYPT": "true",
+        "SQL_SERVER_TRUST_CERTIFICATE": "false",
+        "SQL_MCP_MAX_ROWS": "100",
+        "SQL_MCP_COMMAND_TIMEOUT_SECONDS": "15",
+        "SQL_MCP_MAX_RESPONSE_BYTES": "1048576"
+      }
+    }
+  }
+}
+```
+
+### Option B — run from source
 
 Add this to `~/.config/opencode/opencode.json`:
 
@@ -143,7 +202,7 @@ Add this to `~/.config/opencode/opencode.json`:
         "SQL_SERVER_USER": "YOUR_SQL_LOGIN",
         "SQL_SERVER_PASSWORD": "{env:SQL_SERVER_PASSWORD}",
         "SQL_SERVER_ENCRYPT": "true",
-        "SQL_SERVER_TRUST_CERTIFICATE": "true",
+        "SQL_SERVER_TRUST_CERTIFICATE": "false",
         "SQL_MCP_MAX_ROWS": "100",
         "SQL_MCP_COMMAND_TIMEOUT_SECONDS": "15",
         "SQL_MCP_MAX_RESPONSE_BYTES": "1048576"
@@ -159,27 +218,35 @@ Restart OpenCode after changing config.
 
 Codex surfaces vary, but the MCP launch details are the same:
 
-- command: `dotnet run --project <path-to-csproj>`
-- working directory: repo root
+- command: either the released `.exe` or `dotnet run --project <path-to-csproj>`
+- working directory: extracted release folder or repo root
 - transport: stdio
 - environment: the same variables listed above
 
 Use these values when configuring the MCP server in Codex:
 
 ```text
-command: dotnet
-args: run --project C:\path\to\mcp-sql-server-personal.csproj
-cwd: C:\path\to\repo
+command: C:\tools\mcp-sql-server-personal\mcp-sql-server-personal.exe
+args:
+cwd: C:\tools\mcp-sql-server-personal
 
 SQL_SERVER_HOST=YOUR-SERVER\YOUR-INSTANCE
 SQL_SERVER_DATABASE=YOUR_DATABASE
 SQL_SERVER_USER=YOUR_SQL_LOGIN
 SQL_SERVER_PASSWORD=<your password>
 SQL_SERVER_ENCRYPT=true
-SQL_SERVER_TRUST_CERTIFICATE=true
+SQL_SERVER_TRUST_CERTIFICATE=false
 SQL_MCP_MAX_ROWS=100
 SQL_MCP_COMMAND_TIMEOUT_SECONDS=15
 SQL_MCP_MAX_RESPONSE_BYTES=1048576
+```
+
+If you prefer to run from source instead of the release binary:
+
+```text
+command: dotnet
+args: run --project C:\path\to\mcp-sql-server-personal.csproj
+cwd: C:\path\to\repo
 ```
 
 ## What to verify
@@ -246,6 +313,7 @@ This is a practical balance for local/personal use, not a substitute for databas
 - confirm SQL Server Authentication is enabled
 - confirm the login password is correct and not expired
 - for automation, disable password expiration for the MCP login if appropriate
+- only set `SQL_SERVER_TRUST_CERTIFICATE=true` if you intentionally accept a self-signed or otherwise untrusted certificate
 
 ### Named instances
 
@@ -256,6 +324,7 @@ This is a practical balance for local/personal use, not a substitute for databas
 
 - use `environment`, not `env`, in OpenCode config
 - increase MCP timeout if `dotnet run` starts slowly
+- prefer the released `.exe` if you want startup without cloning the repo or installing the .NET SDK
 - restart OpenCode after config changes
 
 ## Status
