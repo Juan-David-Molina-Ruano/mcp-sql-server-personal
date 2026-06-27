@@ -26,7 +26,6 @@ public class SensitiveColumnPolicyTests
     [InlineData("iban")]
     [InlineData("routing_number")]
     [InlineData("RoutingNumber")]
-    [InlineData("pin")]
     [InlineData("private_key")]
     [InlineData("PrivateKey")]
     public void StrongPatterns_WithoutLineage_AreSensitive(string columnName)
@@ -37,6 +36,7 @@ public class SensitiveColumnPolicyTests
     [Theory]
     [InlineData("api_key")]
     [InlineData("apikey")]
+    [InlineData("pin")]
     public void BroadPatterns_WithoutLineage_AreNotSensitive(string columnName)
     {
         Assert.False(_policy.IsSensitive(columnName));
@@ -46,6 +46,7 @@ public class SensitiveColumnPolicyTests
     [InlineData("api_key", "api_key")]
     [InlineData("apikey", "apikey")]
     [InlineData("MyApiKey", "MyApiKey")]
+    [InlineData("pin", "pin")]
     public void BroadPatterns_WithLineage_AreSensitive(string columnName, string baseColumnName)
     {
         Assert.True(_policy.IsSensitive(columnName, baseColumnName));

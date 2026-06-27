@@ -10,7 +10,7 @@ public static class QueryValidator
     private static readonly HashSet<string> DangerousKeywords = new(StringComparer.OrdinalIgnoreCase)
     {
         "INSERT", "UPDATE", "DELETE", "MERGE", "DROP", "ALTER", "TRUNCATE",
-        "CREATE", "GRANT", "REVOKE", "DENY",
+        "CREATE", "GRANT", "REVOKE", "DENY", "INTO",
     };
 
     private static readonly HashSet<string> DangerousPrefixes = new(StringComparer.OrdinalIgnoreCase)

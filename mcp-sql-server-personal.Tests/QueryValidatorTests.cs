@@ -111,12 +111,11 @@ public class QueryValidatorTests
     }
 
     [Fact]
-    public void SelectInto_DocumentedBehavior()
+    public void SelectInto_IsRejected()
     {
-        // SELECT INTO is not currently blocked by the validator because it does not
-        // match the dangerous-keyword list. This test documents the current behavior.
         var (isValid, error) = QueryValidator.ValidateReadOnlyQuery("SELECT * INTO #Temp FROM Users");
-        Assert.True(isValid);
-        Assert.Null(error);
+        Assert.False(isValid);
+        Assert.NotNull(error);
+        Assert.Contains("INTO", error, StringComparison.OrdinalIgnoreCase);
     }
 }

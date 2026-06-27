@@ -40,7 +40,7 @@ dotnet test
 To produce a single-file executable:
 
 ```powershell
-dotnet publish -c Release --self-contained false
+dotnet publish -c Release --self-contained false -r win-x64
 ```
 
 The output will be in `bin\Release\net8.0\win-x64\publish\`. You can copy the executable and run it directly without the .NET SDK installed (the .NET 8 runtime is still required unless you publish self-contained).
