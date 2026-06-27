@@ -51,6 +51,34 @@ For a fully self-contained build:
 dotnet publish -c Release --self-contained true -r win-x64
 ```
 
+## Release automation
+
+Releases are automated with GitHub Actions and triggered by pushing a SemVer tag.
+
+1. Update the `<Version>` in `mcp-sql-server-personal.csproj` if needed.
+2. Commit and push the version bump.
+3. Create and push a tag:
+
+   ```powershell
+   git tag v1.1.0
+   git push origin v1.1.0
+   ```
+
+4. The `Release` workflow will:
+   - Build and test the project on Windows.
+   - Publish a self-contained `win-x64` executable.
+   - Create a ZIP archive and a SHA-256 checksum file.
+   - Generate a GitHub artifact attestation for the release assets.
+   - Create a GitHub release with the archive and checksum attached.
+
+You can verify the artifact attestation locally using the GitHub CLI:
+
+```powershell
+gh attestation verify mcp-sql-server-personal-win-x64.zip -R <owner>/<repo>
+```
+
+> Only SemVer-style tags matching `v[0-9]+.[0-9]+.[0-9]+*` trigger a release (for example: `v1.1.0`, `v1.1.1`, `v2.0.0`).
+
 ## Environment variables
 
 ### Required
