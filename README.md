@@ -40,11 +40,12 @@ If you only want to use the MCP server, you do not need to clone the repository.
 ### Verify the downloaded ZIP
 
 ```powershell
-Get-FileHash -Path .\mcp-sql-server-personal-win-x64.zip -Algorithm SHA256
-Get-Content .\mcp-sql-server-personal-win-x64.zip.sha256
+$actualHash = (Get-FileHash -Path .\mcp-sql-server-personal-win-x64.zip -Algorithm SHA256).Hash
+$expectedHash = (Get-Content .\mcp-sql-server-personal-win-x64.zip.sha256).Split()[0]
+$actualHash -eq $expectedHash
 ```
 
-The hash output should match the value in the `.sha256` file.
+The command should return `True`.
 
 ### Verify the GitHub artifact attestation
 
